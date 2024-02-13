@@ -17,6 +17,14 @@ namespace WebApplication1
     public partial class epic : System.Web.UI.Page
     {
         string pid = "";
+        string TokenServer = "https://fhir.epic.com/interconnect-fhir-oauth/oauth2/token";
+        string PHIRAPI = "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4/";
+
+        string EpicCLientID = "eddd1a93-3763-4ee8-9bb8-dd0bf1e2ea6b";
+
+        string certificateFilePath = @"D:\temp\Sel Cert\cert2.pfx";
+        string certificatePassword = "pass";
+
 
         protected void Page_Load(object sender, EventArgs e)
         {
@@ -37,7 +45,7 @@ namespace WebApplication1
 
         private void GetInsuID(string token)
         {
-            var coverage = MakeApiRequest("https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4/coverage?patient=" + pid, token);
+            var coverage = MakeApiRequest(PHIRAPI + "coverage?patient=" + pid, token);
 
 
             lblPlans.Text = " Plans =";
@@ -46,7 +54,7 @@ namespace WebApplication1
                 lblPlans.Text += p.ID + " " + p.Name + " ,";
             }
         }
-         
+
 
         private IEnumerable<InsurancePlan1> ExtractInsurancePlans(string xml)
         {
@@ -67,18 +75,17 @@ namespace WebApplication1
 
         private string GetJwtToken()
         {
-            string certificateFilePath = @"D:\temp\Sel Cert\cert2.pfx";
-            string certificatePassword = "pass";
+           
 
             var certificate = new X509Certificate2(certificateFilePath, certificatePassword);
 
             var claims = new[]
             {
-            new System.Security.Claims.Claim(JwtRegisteredClaimNames.Iss, "eddd1a93-3763-4ee8-9bb8-dd0bf1e2ea6b"),
-            new System.Security.Claims.Claim(JwtRegisteredClaimNames.Sub, "eddd1a93-3763-4ee8-9bb8-dd0bf1e2ea6b"),
+            new System.Security.Claims.Claim(JwtRegisteredClaimNames.Iss, EpicCLientID),
+            new System.Security.Claims.Claim(JwtRegisteredClaimNames.Sub, EpicCLientID),
             new System.Security.Claims.Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new System.Security.Claims.Claim(JwtRegisteredClaimNames.Iat, DateTime.UtcNow.ToString()),
-             new System.Security.Claims.Claim(JwtRegisteredClaimNames.Aud, "https://fhir.epic.com/interconnect-fhir-oauth/oauth2/token")
+             new System.Security.Claims.Claim(JwtRegisteredClaimNames.Aud, TokenServer)
             };
 
             var rsa = (RSACryptoServiceProvider)certificate.PrivateKey;
@@ -111,7 +118,7 @@ namespace WebApplication1
                 new KeyValuePair<string, string>("client_assertion", GetJwtToken()),
             });
 
-                var tokenResponse = client.PostAsync($"https://fhir.epic.com/interconnect-fhir-oauth/oauth2/token", tokenRequest)
+                var tokenResponse = client.PostAsync(TokenServer, tokenRequest)
                                    .ConfigureAwait(false)
                                    .GetAwaiter()
                                    .GetResult();
